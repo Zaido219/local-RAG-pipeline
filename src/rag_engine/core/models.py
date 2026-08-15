@@ -15,3 +15,10 @@ class TextChunk:
     text:str
     embedding:Optional[List[float]] = None
     metadata: dict = field(default_factory=dict)
+
+
+@dataclass
+class RetrievalResult:
+    #will reference text chunk to preserve document_id and metadata for citations
+    chunk : TextChunk
+    score:float
