@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "custom-rag-pipeline"
+version = "0.1.0"
+description = "Modular, local RAG pipeline built from scratch."
+dependencies = [
+    "requests>=2.31.0",           # For HTTP communication with Ollama
+    "chromadb>=0.4.0",            # Embedded vector database
+    "sentence-transformers>=2.2.2"# CPU-friendly embedding model execution
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]

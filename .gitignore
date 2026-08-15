@@ -1,0 +1,51 @@
+# Virtual Environment
+.venv/
+venv/
+env/
+ENV/
+
+# Python Bytecode & Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Build & Packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Data Storage & Vector DB Artifacts
+# Ensures local document uploads and persisted Chroma/vector indices aren't committed
+data/
+storage/
+*.chroma/
+chroma_db/
+*.sqlite3
+
+# Environment Variables & Config Secrets
+.env
+.env.local
+*.env
+
+# IDE & Editor Configurations
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Operating System Files
+.DS_Store
+Thumbs.db
