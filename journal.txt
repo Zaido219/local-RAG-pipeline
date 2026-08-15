@@ -1,0 +1,12 @@
+August 15/2026:
+What's Done:
+Project structure, .gitignore, and pyproject.toml setup.
+Architectural documentation inside core/README.md and services/README.md.
+Domain models in src/rag_engine/core/models.py (Document, TextChunk, and RetrievalResult).
+
+What's Next:
+Implementing src/rag_engine/services/vector_repository.py to handle ChromaDB collection setup, embedding storage, and similarity searches.
+
+Keep in Mind:
+Run pip install -e . in your .venv when you resume so Python recognizes the src/rag_engine package imports.
+Remember to push your latest commits (git push -u origin main).
