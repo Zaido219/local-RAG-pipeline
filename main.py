@@ -15,7 +15,7 @@ def main():
     embedder = OllamaEmbeddingModel(model_name="nomic-embed-text")
     retriever = RetrieverService(vector_repo=vector_repo, embedding_model=embedder)
     prompt_builder = PromptBuilderService()
-    inference_client = OllamaInferenceClient(model_name="phi3")
+    inference_client = OllamaInferenceClient(model_name="tinyllama")
 
     pipeline = RAGPipeline(
         document_processor=processor,
