@@ -1,3 +1,27 @@
+August 24, 2026:
+
+What's Done:
+
+Fully implemented and unit-tested all core pipeline components (DocumentProcessor, ChromaVectorRepository, RetrieverService, PromptBuilderService, OllamaEmbeddingModel, and OllamaInferenceClient).
+
+Refactored interfaces (BaseEmbeddingModel, BaseInferenceClient) into src/rag_engine/core/interfaces.py to enforce clean architecture and vendor independence.
+
+Implemented the RAGPipeline orchestrator and validated end-to-end ingestion and context-aware generation using Alice in Wonderland (Chapter 1).
+
+Tested memory behavior under CPU offloading and configured keep_alive: 0 to immediately free RAM after generation.
+
+What's Next:
+
+Pull and benchmark qwen2.5:1.5b (ollama pull qwen2.5:1.5b) to balance instruction-following performance with low RAM usage.
+
+Decide on the next major enhancement: building a CLI interface, wrapping the pipeline in a FastAPI REST API, or adding automated retrieval evaluation metrics.
+
+Keep in Mind:
+
+phi3 has been removed from local storage (ollama rm phi3) to conserve space.
+
+Remember to run git push to sync your local commits to origin/main.
+
 August 15/2026:
 What's Done:
 Project structure, .gitignore, and pyproject.toml setup.
