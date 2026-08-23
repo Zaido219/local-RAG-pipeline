@@ -24,3 +24,9 @@ class OllamaEmbeddingModel(BaseEmbeddingModel):
         # Take advantage of Ollama's native batch embedding support
         response = self.client.embed(model=self.model_name, input=texts)
         return response["embeddings"]
+
+if __name__ == "__main__":
+    embedder = OllamaEmbeddingModel()
+    vector = embedder.embed_query("Hello world")
+
+    print(f"Vector dimensions: {len(vector)}")
