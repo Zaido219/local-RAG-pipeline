@@ -1,16 +1,6 @@
 from rag_engine.core.models import TextChunk, RetrievalResult
-from abc import ABC,abstractmethod
+from rag_engine.core.interfaces import VectoryDbBaseClass
 import chromadb 
-
-class VectoryDbBaseClass(ABC):
-    @abstractmethod
-    def add_chunks(self,chunks:list[TextChunk]) -> None:
-        pass
-    
-    @abstractmethod
-    def similarity_search(self, query_embedding:list[float], top_k:int = 5) -> list[RetrievalResult]:
-        pass
-
 
 
 class ChromaVectorRepository(VectoryDbBaseClass):
