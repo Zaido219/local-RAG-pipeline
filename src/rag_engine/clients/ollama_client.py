@@ -1,5 +1,4 @@
-from abc import ABC, abstractmethod
-from rag_engine.core.interfaces import BaseEmbeddingModel
+from rag_engine.core.interfaces import BaseEmbeddingModel, BaseInferenceClient
 import ollama
 
 
@@ -23,3 +22,13 @@ if __name__ == "__main__":
     vector = embedder.embed_query("Hello world")
 
     print(f"Vector dimensions: {len(vector)}")
+
+
+class OllamaInferenceClient(BaseInferenceClient):
+    def __init__(self, model_name:str="phi3", host:str="http://localhost:11434"):
+        self.model_name = model_name
+        self.client = ollama.Client(host=host)
+
+    def generate(self, prompt:str) -> str:
+        response = self.client.generate(model=self.model_name, prompt=prompt)
+        return response["response"]
