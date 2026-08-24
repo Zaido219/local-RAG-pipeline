@@ -9,7 +9,7 @@ from rag_engine.services.pipeline import RAGPipeline
 
 st.set_page_config(page_title="Local RAG Pipeline", page_icon="🤖", layout="wide")
 st.title("Local RAG Pipeline")
-st.caption("Powered by qwen2.5:3b, ChromaDB, and Sentence-Transformers")
+st.caption("Powered by qwen2.5:7b, ChromaDB, and Sentence-Transformers")
 
 @st.cache_resource
 def get_rag_service() -> RAGPipeline:
@@ -20,13 +20,13 @@ def get_rag_service() -> RAGPipeline:
     processor = DocumentProcessor()
     vector_repo = ChromaVectorRepository(
         persist_directory=chroma_path, 
-        collection_name="alice_docs"
+        collection_name="constitution_docs"
     )
     
     embedder = OllamaEmbeddingModel(model_name="nomic-embed-text", host=ollama_url)
     retriever = RetrieverService(vector_repo=vector_repo, embedding_model=embedder)
     prompt_builder = PromptBuilderService()
-    inference_client = OllamaInferenceClient(model_name="qwen2.5:3b", host=ollama_url)
+    inference_client = OllamaInferenceClient(model_name="qwen2.5:7b", host=ollama_url)
 
     pipeline = RAGPipeline(
         document_processor=processor,

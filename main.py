@@ -9,13 +9,13 @@ def main():
     processor = DocumentProcessor()
     vector_repo = ChromaVectorRepository(
         persist_directory="./chroma_db", 
-        collection_name="alice_docs"
+        collection_name="constitution_docs"
     )
     
     embedder = OllamaEmbeddingModel(model_name="nomic-embed-text")
     retriever = RetrieverService(vector_repo=vector_repo, embedding_model=embedder)
     prompt_builder = PromptBuilderService()
-    inference_client = OllamaInferenceClient(model_name="tinyllama")
+    inference_client = OllamaInferenceClient(model_name="qwen2.5:7b")
 
     pipeline = RAGPipeline(
         document_processor=processor,
@@ -31,7 +31,7 @@ def main():
     print(f"Stored {chunks_created} chunks into ChromaDB.\n")
 
     # Sample query
-    query_text = "What flavors did Alice taste when she drank from the bottle?"
+    query_text = "Describe article 3"
     print(f"User Query: {query_text}")
     print("-" * 50)
     

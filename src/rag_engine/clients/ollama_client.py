@@ -25,7 +25,7 @@ if __name__ == "__main__":
 
 
 class OllamaInferenceClient(BaseInferenceClient):
-    def __init__(self, model_name:str="tinyllama", host:str="http://localhost:11434"):
+    def __init__(self, model_name:str="qwen2.5:7b", host:str="http://localhost:11434"):
         self.model_name = model_name
         self.client = ollama.Client(host=host)
 
