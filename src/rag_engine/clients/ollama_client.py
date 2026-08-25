@@ -1,4 +1,5 @@
 from rag_engine.core.interfaces import BaseEmbeddingModel, BaseInferenceClient
+from google import genai
 import ollama
 import os
 
