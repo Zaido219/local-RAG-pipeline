@@ -2,6 +2,9 @@ from rag_engine.core.interfaces import BaseEmbeddingModel, BaseInferenceClient
 from google import genai
 import ollama
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 class OllamaEmbeddingModel(BaseEmbeddingModel):
@@ -43,14 +46,14 @@ class OllamaInferenceClient(BaseInferenceClient):
 
 
 class GeminiInferenceClient(BaseInferenceClient):
-    def __init__(self, model_name:str="gemini-2.5-flash", key:str | None = None):
+    def __init__(self, model_name:str="gemini-3.6-flash", key:str | None = None):
         self.model_name = model_name
         api_key = key or os.getenv("API_KEY")
 
         if not api_key:
             raise ValueError("Missing api key")
         # initialize the google genai client
-        self.client = genai.Client(api_key=key)
+        self.client = genai.Client(api_key=api_key)
 
     def generate(self, prompt:str):
         response = self.client.models.generate_content(
