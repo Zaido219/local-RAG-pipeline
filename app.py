@@ -6,6 +6,7 @@ from rag_engine.clients.ollama_client import OllamaEmbeddingModel, OllamaInferen
 from rag_engine.services.retriever import RetrieverService
 from rag_engine.services.prompt_builder import PromptBuilderService
 from rag_engine.services.pipeline import RAGPipeline
+from rag_engine.services.audio_service import TextToSpeechService
 
 st.set_page_config(page_title="Local RAG Pipeline", page_icon="🤖", layout="wide")
 st.title("Local RAG Pipeline")
@@ -22,6 +23,7 @@ def get_rag_service() -> RAGPipeline:
         persist_directory=chroma_path, 
         collection_name="constitution_docs"
     )
+
     
     embedder = OllamaEmbeddingModel(model_name="nomic-embed-text", host=ollama_url)
     retriever = RetrieverService(vector_repo=vector_repo, embedding_model=embedder)
@@ -55,6 +57,7 @@ for msg in st.session_state.messages:
 
 
 if prompt := st.chat_input("What do you want to know?..."):
+    tts_service = TextToSpeechService()
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
@@ -62,6 +65,8 @@ if prompt := st.chat_input("What do you want to know?..."):
     with st.chat_message("assistant"):
         with st.spinner("Retrieving context and running inference..."):
             answer = pipeline.query(prompt, top_k=DEFAULT_TOP_K)
-            st.markdown(answer)
+            # tts
+            audio_bytes = tts_service.synthesize(answer)
+            st.audio(audio_bytes, format="audio/mp3", autoplay=True)
 
     st.session_state.messages.append({"role": "assistant", "content": answer})
