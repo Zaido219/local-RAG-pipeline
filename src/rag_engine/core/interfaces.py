@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from rag_engine.core.models import TextChunk, RetrievalResult
+from io import BytesIO
 
 class VectoryDbBaseClass(ABC):
     @abstractmethod
@@ -23,4 +24,14 @@ class BaseEmbeddingModel(ABC):
 class BaseInferenceClient(ABC):
     @abstractmethod
     def generate(self,prompt:str) -> str:
+        pass
+
+class TextToSpeechInterface(ABC):
+    @abstractmethod
+    def synthesize(self, text:str) -> BytesIO:
+        pass
+
+class SpeechToText(ABC):
+    @abstractmethod
+    def transcribe(self, audio_bytes) -> str:
         pass
