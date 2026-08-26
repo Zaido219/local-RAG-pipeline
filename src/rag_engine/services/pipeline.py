@@ -1,14 +1,22 @@
+from typing import List
+from rag_engine.core.models import Document, TextChunk
+from rag_engine.core.interfaces import (
+    VectoryDbBaseClass,
+    BaseEmbeddingModel,
+    BaseInferenceClient,
+)
 from rag_engine.services.document_processor import DocumentProcessor
-from rag_engine.services.vector_repository import ChromaVectorRepository
 from rag_engine.services.retriever import RetrieverService
 from rag_engine.services.prompt_builder import PromptBuilderService
-from rag_engine.core.interfaces import BaseEmbeddingModel, BaseInferenceClient
+
 
 class RAGPipeline:
+    """Orchestrates document ingestion and contextual RAG querying pipelines."""
+
     def __init__(
         self,
         document_processor: DocumentProcessor,
-        vector_repo: ChromaVectorRepository,
+        vector_repo: VectoryDbBaseClass,
         embedding_model: BaseEmbeddingModel,
         retriever: RetrieverService,
         prompt_builder: PromptBuilderService,
@@ -22,10 +30,13 @@ class RAGPipeline:
         self.inference_client = inference_client
 
     def ingest_document(self, file_path: str) -> int:
-        """Processes, embeds, and stores a document. Returns number of chunks created."""
+        """Processes, embeds (with context headers), and stores a document."""
         _, chunks = self.document_processor.process_document(file_path)
-        
-        chunk_texts = [c.text for c in chunks]
+        if not chunks:
+            return 0
+
+        # CRITICAL FIX: Embed using header-enriched searchable text
+        chunk_texts = [c.get_searchable_text() for c in chunks]
         embeddings = self.embedding_model.embed_documents(chunk_texts)
 
         for chunk, emb in zip(chunks, embeddings):
@@ -35,8 +46,7 @@ class RAGPipeline:
         return len(chunks)
 
     def query(self, user_query: str, top_k: int = 3) -> str:
-        """Retrieves relevant chunks, constructs prompt, and generates LLM answer."""
+        """Retrieves relevant chunks, constructs prompt, and generates LLM response."""
         retrieved_results = self.retriever.retrieve(user_query, top_k=top_k)
         prompt = self.prompt_builder.build_prompt(user_query, retrieved_results)
-        response = self.inference_client.generate(prompt)
-        return response
+        return self.inference_client.generate(prompt)

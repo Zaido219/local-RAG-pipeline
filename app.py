@@ -17,7 +17,6 @@ st.caption("Powered by qwen2.5:7b, ChromaDB, and Sentence-Transformers")
 
 @st.cache_resource
 def get_rag_service() -> RAGPipeline:
-    # Pull path and host configurations from environment variables with fallbacks
     chroma_path = os.getenv("CHROMA_PERSIST_DIR", "./chroma_db")
     ollama_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 
