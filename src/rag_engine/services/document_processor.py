@@ -1,64 +1,134 @@
 import uuid
 import re
+from typing import List, Dict, Any, Tuple
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from rag_engine.core.models import Document, TextChunk
 
+
 class DocumentProcessor:
-    def __init__(self):
-        pass
+    """Processes legal documents into structured, metadata-enriched chunks for RAG pipelines."""
 
-    def _chunk_text(self, text: str, chunk_size: int = 1000, overlap: int = 100) -> list[str]:
-        """Splits text recursively based on natural paragraph and sentence delimiters."""
-        # Clean double newlines to split by logical sections first
-        paragraphs = text.split("\n\n")
-        chunks = []
-        current_chunk = []
-        current_length = 0
+    CHAPTER_PATTERN = re.compile(r"^CHAPTER\s+([IVXLCDM]+)\s*(.*)$", re.IGNORECASE)
+    SECTION_PATTERN = re.compile(r"^(?:SEC\.|SECTION)\s+(\d+)\.\s*(.*?)(?:\s*–|\s*—|\s*-|\.|$)", re.IGNORECASE)
 
-        for para in paragraphs:
-            para = para.strip()
-            if not para:
+    def __init__(self, chunk_size: int = 1000, overlap: int = 150):
+        self.chunk_size = chunk_size
+        self.overlap = overlap
+        # Industry-standard recursive splitter handling natural boundaries
+        self.text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=self.chunk_size,
+            chunk_overlap=self.overlap,
+            separators=["\n\n", "\n", " ", ""]
+        )
+
+    def _extract_structural_blocks(self, content: str) -> List[Dict[str, Any]]:
+        """Parses legal content line-by-line, tracking Chapter and Section state machine."""
+        lines = content.split("\n")
+        blocks: List[Dict[str, Any]] = []
+        
+        current_chapter_num = "GENERAL"
+        current_chapter_title = "PREAMBLE"
+        current_sec_num = "0"
+        current_sec_title = "Header Info"
+        
+        buffer: List[str] = []
+
+        for line in lines:
+            stripped = line.strip()
+            if not stripped or stripped.lower() == "back to top":  # Filter out known web noise
                 continue
+
+            # Check for Chapter match
+            chap_match = self.CHAPTER_PATTERN.match(stripped)
+            if chap_match:
+                # Flush previous accumulated text
+                if buffer:
+                    blocks.append({
+                        "chapter_number": current_chapter_num,
+                        "chapter_title": current_chapter_title,
+                        "section_number": current_sec_num,
+                        "section_title": current_sec_title,
+                        "text": "\n".join(buffer)
+                    })
+                    buffer = []
+                current_chapter_num = chap_match.group(1).upper()
+                current_chapter_title = chap_match.group(2).strip()
+                continue
+
+            # Check for Section match
+            sec_match = self.SECTION_PATTERN.match(stripped)
+            if sec_match:
+                if buffer:
+                    blocks.append({
+                        "chapter_number": current_chapter_num,
+                        "chapter_title": current_chapter_title,
+                        "section_number": current_sec_num,
+                        "section_title": current_sec_title,
+                        "text": "\n".join(buffer)
+                    })
+                    buffer = []
+                current_sec_num = sec_match.group(1)
+                current_sec_title = sec_match.group(2).strip()
                 
-            para_len = len(para)
-            
-            # If adding this paragraph exceeds chunk size, dump current buffer
-            if current_length + para_len > chunk_size and current_chunk:
-                combined_text = "\n\n".join(current_chunk)
-                chunks.append(combined_text)
-                
-                # Simple overlap: keep the last element for context continuity
-                current_chunk = current_chunk[-1:] if overlap > 0 else []
-                current_length = sum(len(p) for p in current_chunk)
+            buffer.append(stripped)
 
-            current_chunk.append(para)
-            current_length += para_len
+        # Flush final block
+        if buffer:
+            blocks.append({
+                "chapter_number": current_chapter_num,
+                "chapter_title": current_chapter_title,
+                "section_number": current_sec_num,
+                "section_title": current_sec_title,
+                "text": "\n".join(buffer)
+            })
 
-        if current_chunk:
-            chunks.append("\n\n".join(current_chunk))
+        return blocks
 
-        return chunks
-
-    def process_document(self, file_path: str, chunk_size: int = 1000, overlap: int = 150):
+    def process_document(self, file_path: str) -> Tuple[Document, List[TextChunk]]:
+        """Reads document, builds metadata tree, and generates enriched TextChunks."""
         with open(file_path, "r", encoding="utf-8") as f:
             content = f.read()
-            
+
         doc_id = str(uuid.uuid4())
         document = Document(
             id=doc_id,
             content=content,
-            metadata={"file_path": file_path}
+            metadata={"file_path": file_path, "doc_type": "statute"}
         )
 
-        raw_chunks = self._chunk_text(content, chunk_size=chunk_size, overlap=overlap)
-        text_chunks = []
+        blocks = self._extract_structural_blocks(content)
+        text_chunks: List[TextChunk] = []
+        chunk_idx = 0
 
-        for idx, chunk_text in enumerate(raw_chunks):
-            chunk = TextChunk(
-                chunk_id=f"{doc_id}_{idx}",
-                document_id=doc_id,
-                text=chunk_text,
-                metadata={"chunk_index": idx, "file_path": file_path}
-            )
-            text_chunks.append(chunk)
+        for block in blocks:
+            # Standard sub-splitting via LangChain for large sections
+            sub_texts = self.text_splitter.split_text(block["text"])
+
+            for sub_text in sub_texts:
+                # Context enrichment for embed_text
+                header_prefix = (
+                    f"[Chapter {block['chapter_number']}: {block['chapter_title']} | "
+                    f"Sec. {block['section_number']}: {block['section_title']}]"
+                )
+                embed_text = f"{header_prefix}\n{sub_text}"
+
+                metadata = {
+                    "chunk_index": chunk_idx,
+                    "file_path": file_path,
+                    "chapter_number": block["chapter_number"],
+                    "chapter_title": block["chapter_title"],
+                    "section_number": block["section_number"],
+                    "section_title": block["section_title"]
+                }
+
+                chunk = TextChunk(
+                    chunk_id=f"{doc_id}_{chunk_idx}",
+                    document_id=doc_id,
+                    text=sub_text,
+                    embed_text=embed_text,
+                    metadata=metadata
+                )
+                text_chunks.append(chunk)
+                chunk_idx += 1
 
         return document, text_chunks
