@@ -14,7 +14,7 @@ load_dotenv()
 
 st.set_page_config(page_title="Local RAG Pipeline", page_icon="🤖", layout="wide")
 st.title("Local RAG Pipeline")
-st.caption("Powered by qwen2.5:7b, ChromaDB, and Sentence-Transformers")
+st.caption("Powered by Google's gemini-3.6-flash, ChromaDB, and Sentence-Transformers")
 
 @st.cache_resource
 def get_rag_service() -> RAGPipeline:
@@ -53,7 +53,7 @@ DEFAULT_TOP_K = 8
 
 if "messages" not in st.session_state:
     st.session_state.messages = [
-        {"role": "assistant", "content": "Ask me anything about your ingested documents!"}
+        {"role": "assistant", "content": "Ask me anything about the Data Privacy Act of 2012"}
     ]
 
 for msg in st.session_state.messages:

@@ -1,3 +1,4 @@
+import io
 from abc import ABC, abstractmethod
 from rag_engine.core.models import TextChunk, RetrievalResult
 from io import BytesIO
@@ -39,4 +40,9 @@ class SpeechToText(ABC):
 class QueryTransformerInterface(ABC):
     @abstractmethod
     def expand_query(self, raw_query:str) -> str:
+        pass
+
+class SpeechToTextInterface(ABC):
+    @abstractmethod
+    def transcribe(self,audio_bytes: io.BytesIO) -> str:
         pass
