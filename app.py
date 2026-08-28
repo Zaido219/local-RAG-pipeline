@@ -46,7 +46,7 @@ def get_rag_service() -> RAGPipeline:
 
 pipeline = get_rag_service()
 
-DEFAULT_TOP_K = 2
+DEFAULT_TOP_K = 8
 
 
 if "messages" not in st.session_state:
@@ -59,17 +59,28 @@ for msg in st.session_state.messages:
         st.markdown(msg["content"])
 
 
+# --- Sidebar UI Controls ---
+with st.sidebar:
+    st.header("Settings")
+    enable_tts = st.toggle("Enable Text-to-Speech", value=False)
+    autoplay_tts = st.checkbox("Autoplay Audio", value=True, disabled=not enable_tts)
+
+# --- Chat Execution Loop ---
 if prompt := st.chat_input("What do you want to know?..."):
-    tts_service = TextToSpeechService()
     st.session_state.messages.append({"role": "user", "content": prompt})
+    
     with st.chat_message("user"):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
         with st.spinner("Retrieving context and running inference..."):
             answer = pipeline.query(prompt, top_k=DEFAULT_TOP_K)
-            # tts
-            audio_bytes = tts_service.synthesize(answer)
-            st.audio(audio_bytes, format="audio/mp3", autoplay=True)
+            st.markdown(answer)
+            
+            # Conditionally instantiate service and generate audio
+            if enable_tts:
+                tts_service = TextToSpeechService()
+                audio_bytes = tts_service.synthesize(answer)
+                st.audio(audio_bytes, format="audio/mp3", autoplay=autoplay_tts)
 
     st.session_state.messages.append({"role": "assistant", "content": answer})
