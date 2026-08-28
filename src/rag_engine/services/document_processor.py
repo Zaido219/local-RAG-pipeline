@@ -1,120 +1,108 @@
+import json
 import uuid
-import re
 from typing import List, Dict, Any, Tuple
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from rag_engine.core.models import Document, TextChunk
 
 
 class DocumentProcessor:
-    """Processes legal documents into structured, metadata-enriched chunks for RAG pipelines."""
-
-    CHAPTER_PATTERN = re.compile(r"^CHAPTER\s+([IVXLCDM]+)\s*(.*)$", re.IGNORECASE)
-    SECTION_PATTERN = re.compile(r"^(?:SEC\.|SECTION)\s+(\d+)\.\s*(.*?)(?:\s*–|\s*—|\s*-|\.|$)", re.IGNORECASE)
+    """Processes structured JSON statute documents into metadata-enriched RAG chunks."""
 
     def __init__(self, chunk_size: int = 1000, overlap: int = 150):
         self.chunk_size = chunk_size
         self.overlap = overlap
-        # Industry-standard recursive splitter handling natural boundaries
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=self.chunk_size,
             chunk_overlap=self.overlap,
             separators=["\n\n", "\n", " ", ""]
         )
 
-    def _extract_structural_blocks(self, content: str) -> List[Dict[str, Any]]:
-        """Parses legal content line-by-line, tracking Chapter and Section state machine."""
-        lines = content.split("\n")
-        blocks: List[Dict[str, Any]] = []
+    def _flatten_section_text(self, section: Dict[str, Any]) -> str:
+        """Combines main section text and any nested subsections into a single content block."""
+        text_parts = [section.get("text", "")]
         
-        current_chapter_num = "GENERAL"
-        current_chapter_title = "PREAMBLE"
-        current_sec_num = "0"
-        current_sec_title = "Header Info"
-        
-        buffer: List[str] = []
-
-        for line in lines:
-            stripped = line.strip()
-            if not stripped or stripped.lower() == "back to top":  # Filter out known web noise
-                continue
-
-            # Check for Chapter match
-            chap_match = self.CHAPTER_PATTERN.match(stripped)
-            if chap_match:
-                # Flush previous accumulated text
-                if buffer:
-                    blocks.append({
-                        "chapter_number": current_chapter_num,
-                        "chapter_title": current_chapter_title,
-                        "section_number": current_sec_num,
-                        "section_title": current_sec_title,
-                        "text": "\n".join(buffer)
-                    })
-                    buffer = []
-                current_chapter_num = chap_match.group(1).upper()
-                current_chapter_title = chap_match.group(2).strip()
-                continue
-
-            # Check for Section match
-            sec_match = self.SECTION_PATTERN.match(stripped)
-            if sec_match:
-                if buffer:
-                    blocks.append({
-                        "chapter_number": current_chapter_num,
-                        "chapter_title": current_chapter_title,
-                        "section_number": current_sec_num,
-                        "section_title": current_sec_title,
-                        "text": "\n".join(buffer)
-                    })
-                    buffer = []
-                current_sec_num = sec_match.group(1)
-                current_sec_title = sec_match.group(2).strip()
+        subsections = section.get("subsections", [])
+        if subsections:
+            for sub in subsections:
+                identifier = sub.get("identifier", "")
+                term = sub.get("term", "")
+                sub_text = sub.get("text", "")
                 
-            buffer.append(stripped)
+                # Format nested definitions cleanly for RAG retrieval context
+                if term:
+                    header = f"({identifier}) {term}:"
+                else:
+                    header = f"({identifier}):"
+                
+                text_parts.append(f"{header} {sub_text}")
+                
+        return "\n\n".join(filter(None, text_parts))
 
-        # Flush final block
-        if buffer:
-            blocks.append({
-                "chapter_number": current_chapter_num,
-                "chapter_title": current_chapter_title,
-                "section_number": current_sec_num,
-                "section_title": current_sec_title,
-                "text": "\n".join(buffer)
-            })
+    def _extract_structural_blocks(self, raw_data: Dict[str, Any]) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
+        """Traverses the JSON schema to extract global metadata and flattened section blocks."""
+        doc_metadata = raw_data.get("document_metadata", {})
+        chapters = raw_data.get("chapters", [])
+        blocks: List[Dict[str, Any]] = []
 
-        return blocks
+        for chapter in chapters:
+            chap_num = chapter.get("chapter_number", "")
+            chap_title = chapter.get("chapter_title", "")
+            sections = chapter.get("sections", [])
+
+            for section in sections:
+                sec_num = section.get("section_number", "")
+                sec_title = section.get("section_title", "")
+                combined_text = self._flatten_section_text(section)
+
+                blocks.append({
+                    "chapter_number": chap_num,
+                    "chapter_title": chap_title,
+                    "section_number": sec_num,
+                    "section_title": sec_title,
+                    "text": combined_text
+                })
+
+        return doc_metadata, blocks
 
     def process_document(self, file_path: str) -> Tuple[Document, List[TextChunk]]:
-        """Reads document, builds metadata tree, and generates enriched TextChunks."""
+        """Reads the JSON file, extracts structural units, and generates enriched TextChunks."""
         with open(file_path, "r", encoding="utf-8") as f:
-            content = f.read()
+            raw_data = json.load(f)
 
         doc_id = str(uuid.uuid4())
+        content_str = json.dumps(raw_data)
+        
+        doc_metadata, blocks = self._extract_structural_blocks(raw_data)
+
+        # Propagate global document metadata across all chunks for stronger contextual search
+        base_metadata = {
+            "file_path": file_path,
+            "doc_type": "statute",
+            **doc_metadata
+        }
+
         document = Document(
             id=doc_id,
-            content=content,
-            metadata={"file_path": file_path, "doc_type": "statute"}
+            content=content_str,
+            metadata=base_metadata
         )
 
-        blocks = self._extract_structural_blocks(content)
         text_chunks: List[TextChunk] = []
         chunk_idx = 0
 
         for block in blocks:
-            # Standard sub-splitting via LangChain for large sections
             sub_texts = self.text_splitter.split_text(block["text"])
 
             for sub_text in sub_texts:
-                # Context enrichment for embed_text
                 header_prefix = (
                     f"[Chapter {block['chapter_number']}: {block['chapter_title']} | "
                     f"Sec. {block['section_number']}: {block['section_title']}]"
                 )
                 embed_text = f"{header_prefix}\n{sub_text}"
 
-                metadata = {
+                chunk_metadata = {
                     "chunk_index": chunk_idx,
-                    "file_path": file_path,
+                    **base_metadata,
                     "chapter_number": block["chapter_number"],
                     "chapter_title": block["chapter_title"],
                     "section_number": block["section_number"],
@@ -126,7 +114,7 @@ class DocumentProcessor:
                     document_id=doc_id,
                     text=sub_text,
                     embed_text=embed_text,
-                    metadata=metadata
+                    metadata=chunk_metadata
                 )
                 text_chunks.append(chunk)
                 chunk_idx += 1
