@@ -35,3 +35,8 @@ class SpeechToText(ABC):
     @abstractmethod
     def transcribe(self, audio_bytes) -> str:
         pass
+
+class QueryTransformerInterface(ABC):
+    @abstractmethod
+    def expand_query(self, raw_prompt:str) -> str:
+        pass
