@@ -4,6 +4,7 @@ from rag_engine.core.interfaces import TextToSpeechInterface, SpeechToTextInterf
 from io import BytesIO
 from gtts import gTTS
 from google import genai
+from google.genai import types
 
 class TextToSpeechService(TextToSpeechInterface):
     def __init__(self):
@@ -31,15 +32,13 @@ class GeminiTTSService(SpeechToTextInterface):
                 "verbatim text transcription. Do not summarize or answer the audio, "
                 "only output the spoken words."
             )
+            audio_part = types.Part.from_bytes(
+                data=audio_data,
+                mime_type="audio/wav"
+            )
             response = self.client.models.generate_content(
                 model= self.model_name,
-                contents=[
-                    prompt,
-                    {
-                        "mime_type":"audio/wav",
-                        "data" : audio_data
-                    }
-                ]
+                contents=[prompt,audio_part]
             )
 
             return response.text.strip()
