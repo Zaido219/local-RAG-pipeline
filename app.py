@@ -3,6 +3,7 @@ import streamlit as st
 from rag_engine.services.document_processor import DocumentProcessor
 from rag_engine.services.vector_repository import ChromaVectorRepository
 from rag_engine.clients.ollama_client import OllamaEmbeddingModel, OllamaInferenceClient,GeminiInferenceClient
+from rag_engine.clients.transformer_clients import QueryTransformer
 from rag_engine.services.retriever import RetrieverService
 from rag_engine.services.prompt_builder import PromptBuilderService
 from rag_engine.services.pipeline import RAGPipeline
@@ -30,8 +31,8 @@ def get_rag_service() -> RAGPipeline:
     embedder = OllamaEmbeddingModel(model_name="nomic-embed-text", host=ollama_url)
     retriever = RetrieverService(vector_repo=vector_repo, embedding_model=embedder)
     prompt_builder = PromptBuilderService()
-    qwen_inference_client = OllamaInferenceClient(model_name="qwen2.5:7b", host=ollama_url)
     inference_client = GeminiInferenceClient()
+    query_transformer = QueryTransformer(inference_client=inference_client)
 
     pipeline = RAGPipeline(
         document_processor=processor,
@@ -39,7 +40,8 @@ def get_rag_service() -> RAGPipeline:
         embedding_model=embedder,
         retriever=retriever,
         prompt_builder=prompt_builder,
-        inference_client=inference_client
+        inference_client=inference_client,
+        query_transformer=query_transformer
     )
     
     return pipeline

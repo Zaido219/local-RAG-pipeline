@@ -38,5 +38,5 @@ class SpeechToText(ABC):
 
 class QueryTransformerInterface(ABC):
     @abstractmethod
-    def expand_query(self, raw_prompt:str) -> str:
+    def expand_query(self, raw_query:str) -> str:
         pass
