@@ -2,6 +2,7 @@ import os
 import io
 import streamlit as st
 import redis
+import uuid
 from rag_engine.services.document_processor import DocumentProcessor
 from rag_engine.services.vector_repository import ChromaVectorRepository
 from rag_engine.clients.ollama_client import OllamaEmbeddingModel, GeminiInferenceClient
@@ -51,6 +52,7 @@ def get_rag_service():
     
     return pipeline, stt_service
 
+@st.cache_resource
 def get_memory_store() -> SessionMemoryInterface:
     memory_type = os.getenv("MEMORY_TYPE","redis").lower()
 
@@ -71,8 +73,13 @@ def get_memory_store() -> SessionMemoryInterface:
         return RedisSessionMemoryStore(redis_client=client)
 
 
-pipeline, stt_service = get_rag_service()
+#maintain browser session UUID
+if "session_id" not in st.session_state:
+    st.session_state.session_id = str(uuid.uuid4())
+
+
 session_memory = get_memory_store()
+pipeline, stt_service = get_rag_service(session_memory)
 
 
 DEFAULT_TOP_K = 8
@@ -125,7 +132,7 @@ if active_prompt:
 
     with st.chat_message("assistant"):
         with st.spinner("Retrieving context and running inference..."):
-            answer = pipeline.query(active_prompt, top_k=DEFAULT_TOP_K)
+            answer = pipeline.query(active_prompt, session_id=st.session_state.session_id, top_k=DEFAULT_TOP_K)
             st.markdown(answer)
             
             # Conditionally generate TTS audio
