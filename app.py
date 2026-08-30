@@ -37,6 +37,7 @@ def get_rag_service():
     prompt_builder = PromptBuilderService()
     inference_client = GeminiInferenceClient()
     query_transformer = QueryTransformer(inference_client=inference_client)
+    session_memory = get_memory_store()
 
     pipeline = RAGPipeline(
         document_processor=processor,
@@ -45,6 +46,7 @@ def get_rag_service():
         retriever=retriever,
         prompt_builder=prompt_builder,
         inference_client=inference_client,
+        session_memory=session_memory,
         query_transformer=query_transformer
     )
     
@@ -79,7 +81,7 @@ if "session_id" not in st.session_state:
 
 
 session_memory = get_memory_store()
-pipeline, stt_service = get_rag_service(session_memory)
+pipeline, stt_service = get_rag_service()
 
 
 DEFAULT_TOP_K = 8
