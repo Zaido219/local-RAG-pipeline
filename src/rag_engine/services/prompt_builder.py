@@ -32,7 +32,7 @@ class PromptBuilderService():
         
         return f"{header}\n{chunk.text}"
 
-    def build_prompt(self, query: str, results: List[RetrievalResult]) -> str:
+    def build_prompt(self, query: str, results: List[RetrievalResult], chat_history:str) -> str:
         """Constructs the complete prompt string combining system instructions, formatted context, and query."""
         if not results:
             context_text = "No relevant document chunks were retrieved."

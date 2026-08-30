@@ -3,7 +3,7 @@ import redis
 from rag_engine.core.interfaces import SessionMemoryInterface
 from typing import List
 
-
+#todo: it seems this has no token check
 class RedisSessionMemoryStore(SessionMemoryInterface):
     def __init__(self,redis_client: redis.Redis,ttl_seconds:int = 300, max_messages:int = 10):
         self.client = redis_client
