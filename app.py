@@ -1,6 +1,7 @@
 import os
 import io
 import streamlit as st
+import redis
 from rag_engine.services.document_processor import DocumentProcessor
 from rag_engine.services.vector_repository import ChromaVectorRepository
 from rag_engine.clients.ollama_client import OllamaEmbeddingModel, GeminiInferenceClient
@@ -11,6 +12,7 @@ from rag_engine.services.pipeline import RAGPipeline
 from rag_engine.services.audio_service import TextToSpeechService, GeminiTTSService
 from dotenv import load_dotenv
 from rag_engine.services.session_memory import RedisSessionMemoryStore
+from rag_engine.core.interfaces import SessionMemoryInterface
 
 load_dotenv()
 
@@ -49,8 +51,24 @@ def get_rag_service():
     
     return pipeline, stt_service
 
-def get_memory_store() -> RedisSessionMemoryStore():
-    
+def get_memory_store() -> SessionMemoryInterface:
+    memory_type = os.getenv("MEMORY_TYPE","redis").lower()
+
+    if memory_type == "redis":
+        #todo: missing env references in here, re: make sure in production
+        host = os.getenv("REDIS_HOST", "localhost")
+        port = int(os.getenv("REDIS_PORT", "6379"))
+        client = redis.Redis(
+            host=host,
+            port=port,
+            socket_timeout=2,
+            decode_responses=False
+        )
+        # Ping forces an immediate TCP handshake check
+        # if Redis is down this will raise a redis.ConnectionError and will halt startup
+        client.ping()
+
+        return RedisSessionMemoryStore(redis_client=client)
 
 pipeline, stt_service = get_rag_service()
 
