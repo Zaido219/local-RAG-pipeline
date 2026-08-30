@@ -2,6 +2,7 @@ import io
 from abc import ABC, abstractmethod
 from rag_engine.core.models import TextChunk, RetrievalResult
 from io import BytesIO
+from typing import List, Dict, Optional
 
 class VectoryDbBaseClass(ABC):
     @abstractmethod
@@ -45,4 +46,16 @@ class QueryTransformerInterface(ABC):
 class SpeechToTextInterface(ABC):
     @abstractmethod
     def transcribe(self,audio_bytes: io.BytesIO) -> str:
+        pass
+
+class SessionMemoryInterface(ABC):
+    @abstractmethod
+    def add_message(self, session_id:str, role:str, content:str) -> None:
+        """Appends a message, enforces window limits, and updates session TTL."""
+        pass
+    @abstractmethod
+    def get_session_history(self, session_id:str) -> List[Dict[str, str]]:
+        pass;
+    @abstractmethod
+    def clear_session(self, session_id:str) -> None:
         pass
