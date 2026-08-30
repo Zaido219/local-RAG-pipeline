@@ -3,13 +3,14 @@ import io
 import streamlit as st
 from rag_engine.services.document_processor import DocumentProcessor
 from rag_engine.services.vector_repository import ChromaVectorRepository
-from rag_engine.clients.ollama_client import OllamaEmbeddingModel, OllamaInferenceClient, GeminiInferenceClient
+from rag_engine.clients.ollama_client import OllamaEmbeddingModel, GeminiInferenceClient
 from rag_engine.clients.transformer_clients import QueryTransformer
 from rag_engine.services.retriever import RetrieverService
 from rag_engine.services.prompt_builder import PromptBuilderService
 from rag_engine.services.pipeline import RAGPipeline
 from rag_engine.services.audio_service import TextToSpeechService, GeminiTTSService
 from dotenv import load_dotenv
+from rag_engine.services.session_memory import RedisSessionMemoryStore
 
 load_dotenv()
 
@@ -47,6 +48,9 @@ def get_rag_service():
     stt_service = GeminiTTSService()
     
     return pipeline, stt_service
+
+def get_memory_store() -> RedisSessionMemoryStore():
+    
 
 pipeline, stt_service = get_rag_service()
 
