@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Dict
 from textwrap import dedent
 from rag_engine.core.models import RetrievalResult
 
@@ -8,9 +8,10 @@ class PromptBuilderService():
 
     DEFAULT_SYSTEM_INSTRUCTION = (
         "You are an expert legal assistant specializing in statutory compliance. "
-        "Answer the user's question accurately using ONLY the provided context chunks below. "
-        "For every claim or sanction you mention, explicitly cite the Chapter and Section number. "
-        "If the answer cannot be derived from the context, state clearly that the provided documents "
+        "Use the CONVERSATION HISTORY to maintain dialogue context and remember user details. "
+        "Use the CONTEXT INFORMATION from retrieved documents to answer legal questions. "
+        "For claims or sanctions derived from documents, explicitly cite Chapter and Section numbers. "
+        "If a legal question cannot be derived from the document context, state that the documents "
         "do not contain sufficient information."
     )
 
@@ -32,8 +33,21 @@ class PromptBuilderService():
         
         return f"{header}\n{chunk.text}"
 
-    def build_prompt(self, query: str, results: List[RetrievalResult], chat_history:str) -> str:
-        """Constructs the complete prompt string combining system instructions, formatted context, and query."""
+    def _format_chat_history(self, chat_history:Optional[List[Dict[str, str]]]) -> str:
+        """Converts raw list of message dicts into a formatted transcript."""
+        if not chat_history:
+            return "No previous conversation history"
+        formatted_turns = []
+
+        for msg in chat_history:
+            role = "User" if msg["role"] == "user" else "Assistant"
+            formatted_turns.append(f"{role}: {msg['content']}")
+
+        return "\n".join(formatted_turns)
+
+    
+    def build_prompt(self, query: str, results: List[RetrievalResult], chat_history:Optional[List[Dict[str,str]]] = None) -> str:
+        """Constructs the complete prompt string combining system instructions, formatted context, chat history and query."""
         if not results:
             context_text = "No relevant document chunks were retrieved."
         else:
@@ -42,10 +56,15 @@ class PromptBuilderService():
             ]
             context_text = "\n\n---\n\n".join(formatted_chunks)
 
+        history_text = self._format_chat_history(chat_history)
+
         formatted_prompt = f"""\
 {self.system_instruction}
 
-CONTEXT INFORMATION:
+CONVERSATION HISTORY:
+{history_text}
+
+RETRIEVED DOCUMENT CONTEXT:
 {context_text}
 
 USER QUESTION:
@@ -53,4 +72,4 @@ USER QUESTION:
 
 ANSWER:"""
 
-        return dedent(formatted_prompt).strip()
+        return dedent(formatted_prompt).strip() 
