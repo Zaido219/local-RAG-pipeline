@@ -71,6 +71,7 @@ def get_memory_store() -> SessionMemoryInterface:
         return RedisSessionMemoryStore(redis_client=client)
 
 pipeline, stt_service = get_rag_service()
+session_memory = get_memory_store()
 
 DEFAULT_TOP_K = 8
 
