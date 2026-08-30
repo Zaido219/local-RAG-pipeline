@@ -44,17 +44,14 @@ def get_rag_service():
         query_transformer=query_transformer
     )
     
-    # Initialize speech-to-text service
     stt_service = GeminiTTSService()
     
     return pipeline, stt_service
 
-# Retrieve cached dependencies
 pipeline, stt_service = get_rag_service()
 
 DEFAULT_TOP_K = 8
 
-# Initialize session state for messages and the dynamic audio key
 if "messages" not in st.session_state:
     st.session_state.messages = [
         {"role": "assistant", "content": "Ask me anything about the Data Privacy Act of 2012"}
@@ -63,12 +60,10 @@ if "messages" not in st.session_state:
 if "audio_key" not in st.session_state:
     st.session_state.audio_key = 0
 
-# Display historical messages
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-# --- Sidebar UI Controls ---
 voice_prompt = None
 
 with st.sidebar:
@@ -79,7 +74,6 @@ with st.sidebar:
     st.divider()
     st.header("Voice Query")
     
-    # Pass dynamic key to allow reset after each transcription submission
     recorded_audio = st.audio_input(
         "Record your question", 
         key=f"voice_input_{st.session_state.audio_key}"
@@ -94,10 +88,8 @@ with st.sidebar:
             if voice_prompt:
                 st.success(f"**Transcribed Query:** \"{voice_prompt}\"")
 
-# --- Chat Execution Loop ---
 text_prompt = st.chat_input("What do you want to know?...")
 
-# Determine active input (prioritize newly recorded voice input over text input)
 active_prompt = voice_prompt or text_prompt
 
 if active_prompt:
@@ -119,7 +111,6 @@ if active_prompt:
 
     st.session_state.messages.append({"role": "assistant", "content": answer})
 
-    # Clear audio widget if input came from voice recording
     if voice_prompt:
         st.session_state.audio_key += 1
         st.rerun()
